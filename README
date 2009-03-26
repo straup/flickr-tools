@@ -9,3 +9,10 @@ Assorted CLI tools for the talking to the Flickr API.
 api_key=APIKEY
 api_secret=SECRET
 auth_token=TOKEN
+
+--
+
+REQUIREMENTS (I'll write a proper setup.py file soon...)
+
+http://pypi.python.org/pypi/Flickr.API/
+http://effbot.org/zone/element-index.htm
