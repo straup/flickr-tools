@@ -6,8 +6,8 @@ import Flickr.API
 import elementtree.ElementTree as ET
     
 parser = optparse.OptionParser()
-parser.add_option("-c", "--config", dest="config", help="")
-parser.add_option("-p", "--place", dest="place", help="")
+parser.add_option("-c", "--config", dest="config", help="path to an ini config file")
+parser.add_option("-p", "--place", dest="place", help="the location to geocode")
 
 (opts, args) = parser.parse_args()
 
