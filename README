@@ -1,1 +1,11 @@
 Assorted CLI tools for the talking to the Flickr API.
+
+--
+
+# SAMPLE CONFIG
+# store this in a file called flickr.cfg (or whatever)
+
+[flickr]
+api_key=APIKEY
+api_secret=SECRET
+auth_token=TOKEN
