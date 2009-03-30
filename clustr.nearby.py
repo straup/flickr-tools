@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # THIS ONE MAY NOT WORK AS ADVERTISED YET
+# ALL THE ARGS/CLI STUFF WILL NEED TO BE REFACTORED
 
 import Flickr.API
 import elementtree.ElementTree as ET
@@ -15,7 +16,7 @@ class clustr :
     def __init__ (self, cfg) :
 
         key = cfg.get('flickr', 'api_key')
-        secret = None
+        secret = cfg.get('flickr', 'api_secret')
 
         self.api = Flickr.API.API(key, secret)
         self.cfg = cfg
@@ -35,7 +36,10 @@ class clustr :
 
             if contacts :
                 args['contacts'] = contacts
+                who += "-contacts"
 
+                args['auth_token'] = self.cfg.get('flickr', 'auth_token')
+                
         # sort nearby photos like this...
         
         if sort == 'distance' :
@@ -92,7 +96,7 @@ class clustr :
             # print "crunching page %s of %s" % (current_page, num_pages)
 
             args['page'] = current_page
-            res = self.api.execute_method(method='flickr.photos.search', args=args, sign=False)
+            res = self.api.execute_method(method='flickr.photos.search', args=args)
 
             tree = ET.parse(res)
             rsp = tree.getroot()
@@ -142,7 +146,8 @@ if __name__ == '__main__' :
     parser.add_option("-o", "--outdir", dest="outdir", help="the directory to write clustr input file ", default=None)            
     parser.add_option("--who", dest="who", help="", default='everyone')
     parser.add_option("--when", dest="when", help="", default='recent')
-    parser.add_option("--sort", dest="sort", help="", default='mostrecent')
+    parser.add_option("--sort", dest="sort", help="", default='mostrecent') 
+    parser.add_option("--contacts", dest="contacts", help="", default=False)   
     
     (opts, args) = parser.parse_args()
 
@@ -150,4 +155,4 @@ if __name__ == '__main__' :
     cfg.read(opts.config)
     
     cl = clustr(cfg)
-    cl.points_for_nearby(opts.lat, opts.lon, opts.who, opts.when, opts.sort)
+    cl.points_for_nearby(opts.lat, opts.lon, opts.who, opts.when, opts.sort, opts.contacts)
