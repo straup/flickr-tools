@@ -23,35 +23,62 @@ class clustr :
         
     #
     
-    def points_for_nearby (self, lat, lon, who='everyone', when='recent', sort='mostrecent', contacts=None) :
+    def points_for_nearby (self, opts) :
 
+        # nearby a photo?
+        
+        if opts.photo :
+
+            args = {'photo_id':opts.photo, 'auth_token':self.cfg.get('flickr', 'auth_token')}
+            
+            res = self.api.execute_method(method='flickr.photos.getInfo', args=args)
+            tree = ET.parse(res)
+            rsp = tree.getroot()
+
+            loc = rsp.find('.//location')
+
+            if not loc :
+                print "failed to find any location information for photo ID %s" % opts.photo
+                return False
+            
+            lat = loc.attrib['latitude']
+            lon = loc.attrib['latitude']
+
+            if opts.who == 'owner' :
+                opts.who = rsp.find('.//owner').attrib['nsid']
+                
+        else :
+
+            lat = opts.lat
+            lon = opts.lon
+
+        # some basics
+        
         args = {'lat':lat, 'lon':lon, 'radius':1,
                 'has_geo':1, 'extras':'geo',
                 'per_page':250}
         
         # whose nearby photos fetch
-        
-        if who != 'everyone':
-            args['user_id'] = who
 
-            if contacts :
+        if opts.who != 'everyone':
+            args['user_id'] = opts.who
+
+            if opts.contacts :
                 args['contacts'] = contacts
-                who += "-contacts"
-
                 args['auth_token'] = self.cfg.get('flickr', 'auth_token')
                 
         # sort nearby photos like this...
         
-        if sort == 'distance' :
+        if opts.sort == 'distance' :
             pass
-        elif sort == 'interestingness' :
+        elif opts.sort == 'interestingness' :
             args['sort'] = 'interestingness-desc'
         else :
             args['sort'] = 'date-posted-desc'
         
         # fetch nearby photos from when
 
-        if type(when) == "<type 'datetime.datetime'>" :
+        if type(opts.when) == "<type 'datetime.datetime'>" :
 
             offset = datetime.timedelta(days=7)
             before = when - offset
@@ -60,7 +87,7 @@ class clustr :
             args['min_upload_date'] = int(time.mktime(before.timetuple()))
             args['min_upload_date'] = int(time.mktime(after.timetuple()))
 
-        elif when == 'alltime' :
+        elif opts.when == 'alltime' :
 
             then = iso8601.parse_date("1970-01-01T00:00:00Z")
             today = datetime.datetime.now()
@@ -78,18 +105,36 @@ class clustr :
             args['min_upload_date'] = int(time.mktime(then.timetuple()))
             args['max_upload_date'] = int(time.mktime(today.timetuple()))
 
-        #
+        # dumpfile name/path
         
-        dumpfile = "nearby-%s-%s-%s.txt" % (who, when, sort)
+        what = "%s-%s" % (lat,lon)
+        who = opts.who
+        when = opts.when
+        sort = opts.sort
         
-        current_page = 1
-        num_pages = None
+        if opts.photo :
+            what = opts.photo
 
+        if opts.contacts :
+            who += "-contacts"
+
+        dumpfile = "nearby-%s-%s-%s-%s.txt" % (what, who, when, sort)
+
+        if opts.outdir :
+            dumpfile = os.path.join(opts.outdir, dumpfile)
+        
+        # can has file?
+        
         try :
             fh = open(dumpfile, "w")
         except Exception, e :
             print "failed to open %s for writing, %s" % (dumpfile, e)
             return False
+
+        # ok, go!
+
+        current_page = 1
+        num_pages = None
         
         while not num_pages or current_page < num_pages :
 
@@ -147,7 +192,8 @@ if __name__ == '__main__' :
     parser.add_option("--who", dest="who", help="", default='everyone')
     parser.add_option("--when", dest="when", help="", default='recent')
     parser.add_option("--sort", dest="sort", help="", default='mostrecent') 
-    parser.add_option("--contacts", dest="contacts", help="", default=False)   
+    parser.add_option("--contacts", dest="contacts", help="", default=False)
+    parser.add_option("--photo", dest="photo", help="", default=None)    
     
     (opts, args) = parser.parse_args()
 
@@ -155,4 +201,4 @@ if __name__ == '__main__' :
     cfg.read(opts.config)
     
     cl = clustr(cfg)
-    cl.points_for_nearby(opts.lat, opts.lon, opts.who, opts.when, opts.sort, opts.contacts)
+    cl.points_for_nearby(opts)
