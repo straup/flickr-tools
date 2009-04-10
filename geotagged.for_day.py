@@ -65,7 +65,7 @@ if __name__ == '__main__' :
 
         max_date = min_date + (60 * 30)
         
-        args = {'has_geo':1, 'extras':'geo,'
+        args = {'has_geo':1, 'extras':'geo',
                 'min_upload_date':min_date, 'max_upload_date':max_date,
                 'per_page':250}
 
