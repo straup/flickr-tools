@@ -20,7 +20,8 @@ if __name__ == '__main__' :
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config", dest="config", help="path to an ini config file")
     parser.add_option("-d", "--date", dest="date", help="")
-    parser.add_option("-o", "--outdir", dest="outdir", help="the directory to write clustr input file ", default=None)            
+    parser.add_option("-o", "--outdir", dest="outdir", help="the directory to write clustr input file ", default=None)
+    parser.add_option("--clustr", dest="clustr", help="format the output suitable for use by the Clustr application ", default=None, action='store_true')  
 
     (opts, args) = parser.parse_args()
 
@@ -103,6 +104,10 @@ if __name__ == '__main__' :
                     continue
         
                 ln = "%s,%s" % (lon, lat)
+
+                if opts.clustr :
+                    ln = "%s\t%s\t%s\n" % (opts.date, lon, lat)
+                    
                 fh.write("%s\n" % ln)
                 
                 total += 1
