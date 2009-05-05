@@ -8,6 +8,7 @@ import elementtree.ElementTree as ET
 parser = optparse.OptionParser()
 parser.add_option("-c", "--config", dest="config", help="path to an ini config file")
 parser.add_option("-w", "--woeid", dest="woeid", help="the WOE ID to fetch")
+parser.add_option("-s", "--shapes", dest="shapes", help="print complete shape history", default=None, action='store_true')
 
 (opts, args) = parser.parse_args()
 
@@ -21,5 +22,13 @@ req = Flickr.API.Request(method='flickr.places.getInfo', woe_id=opts.woeid, sign
 res = api.execute_request(req)
 
 et = ET.parse(res)
-
 print ET.tostring(et.getroot())
+
+if opts.shapes :
+
+    req = Flickr.API.Request(method='flickr.places.getShapeHistory', woe_id=opts.woeid, sign=None)
+    res = api.execute_request(req)
+
+    et = ET.parse(res)
+    print ET.tostring(et.getroot())
+    
