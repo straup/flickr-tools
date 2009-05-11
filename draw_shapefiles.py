@@ -9,6 +9,19 @@ import types
 print "Hey! This won't work yet because a new version of modestMMarkers hasn't been released yet."
 sys.exit()
 
+"""
+import pwd
+import os.path
+import posix
+
+user = pwd.getpwuid(posix.geteuid())
+home = os.path.abspath(user[5])
+pylib = home + "/lib/python"
+
+sys.path.insert(0, pylib + "/ModestMaps/py/")
+sys.path.insert(0, pylib + "/py-modestMMarkers/")
+"""
+
 try :
     import Flickr.API
     import elementtree.ElementTree as ET
@@ -16,7 +29,20 @@ try :
     import modestMMarkers
     import cairo
 except Exception, e :
+
+    req = {'cairo' : 'http://cairographics.org/pycairo/',
+           'ElementTree' : 'http://effbot.org/zone/element-index.htm',
+           'Flickr.API' : 'http://pypi.python.org/pypi/Flickr.API/',           
+           'ModestMaps' : 'http://www.modestmaps.com',
+           'modestMMarkers' : 'http://github.com/straup/py-modestMMarkers/'}
+    
     print "Hrm. It looks like you're missing one or more dependencies: %s" % e
+    print ""
+    print "The complete list of dependencies to run this program is:"
+
+    for (name, url) in req.items() :
+        print "\t%s (%s)" % (name, url)
+        
     sys.exit()
     
 class Shapefiles :
@@ -37,39 +63,21 @@ class Shapefiles :
         ne_lon = None
 
         for pt in points :
+            
+            lat = pt['latitude']
+            lon = pt['longitude']
 
-                # ugh...
+            if not sw_lat or lat < sw_lat :
+                sw_lat = lat
                 
-                if type(pt) == types.DictType :
-                        if pt.has_key('lat') :
-                                lat = pt['lat']
-                                lon = pt['lon']                                
-                        else :
-                                lat = pt['latitude']
-                                lon = pt['longitude']
-
-                elif type(pt) == types.ListType :
-                        lat = pt[0]
-                        lon = pt[1]
-                elif type(pt) == types.TupleType :
-                        lat = pt[0]
-                        lon = pt[1]                        
-                else :
-                        continue
-
-                #
-                
-                if not sw_lat or lat < sw_lat :
-                        sw_lat = lat
-                
-                if not sw_lon or lon < sw_lon :
-                        sw_lon = lon
+            if not sw_lon or lon < sw_lon :
+                sw_lon = lon
                         
-                if not ne_lat or lat > ne_lat :
-                        ne_lat = lat
+            if not ne_lat or lat > ne_lat :
+                ne_lat = lat
 
-                if not ne_lon or lon > ne_lon :
-                        ne_lon = lon
+            if not ne_lon or lon > ne_lon :
+                ne_lon = lon
 
         return (sw_lat,sw_lon,ne_lat,ne_lon)
         
@@ -88,9 +96,11 @@ class Shapefiles :
                 pair = coord.split(",")
                 lat = float(pair[0])
                 lon = float(pair[1])
+
+                pt = {'latitude':lat, 'longitude':lon}
                 
-                points.append({'latitude':lat, 'longitude':lon})
-                allpoints.append({'lat':lat, 'lon':lon})
+                points.append(pt)
+                allpoints.append(pt)
             
             polys.append(points)
 
@@ -153,19 +163,36 @@ class Shapefiles :
         
         mm_obj = ModestMaps.mapByExtent(provider, sw, ne, dims)
         mm_img = mm_obj.draw()
-    
+            
         # Draw the shapes
 
         markers = modestMMarkers.modestMMarkers(mm_obj)
+
+        # The bounding box?
+
+        if kwargs['bbox'] :
+            mm_img = markers.draw_bounding_box(mm_img, allpoints, colour=(1, 0, .005), opacity_fill=.1)
+            
+        # The current shape of WOE ID
+
         mm_img = markers.draw_polylines(mm_img, polys)
+
+        # Donut holes
         
         if len(donuts) :
             mm_img = markers.draw_polylines(mm_img, donuts, colour=(.005, 0, 1))
+
+        # Child WOE IDs
         
         if len(children) :
             for ch in children :
                 mm_img = markers.draw_polylines(mm_img, ch, colour=(255,255,255), no_fill=True)
 
+        # sssshhhh.....
+        # mm_img = markers.draw_points(mm_img, allpoints, colour=(.005, 0, 1))
+        
+        # Happy
+        
         self.mm_img = mm_img
 
         
@@ -182,9 +209,10 @@ if __name__ == '__main__' :
     parser.add_option("-o", "--out", dest="out", help="The path where the final PNG image should be created")
     parser.add_option("-P", "--provider", dest="provider", help="The name of the ModestMaps tile provider to use", default='OPEN_STREET_MAP')
     parser.add_option("-H", "--height", dest="height", help="Image height (in pixels)", default=1024)
-    parser.add_option("-W", "--width", dest="width", help="Image width (in pixels)", default=1024)
+    parser.add_option("-W", "--width", dest="width", help="Image width (in pixels)", default=768)
     parser.add_option("-C", "--children", dest="children", help="Draw the child shapefiles for WOE ID too", default=None, action='store_true')
-    parser.add_option("-D", "--donuts", dest="donuts", help="Draw the donut hole shapefiles for WOE ID too", default=None, action='store_true')    
+    parser.add_option("-D", "--donuts", dest="donuts", help="Draw the donut hole shapefiles for WOE ID too", default=None, action='store_true')
+    parser.add_option("-B", "--bbox", dest="bbox", help="Draw the bounding box for ...", default=None, action='store_true')        
 
     (opts, args) = parser.parse_args()
 
@@ -192,7 +220,7 @@ if __name__ == '__main__' :
     cfg.read(opts.config)
 
     shp = Shapefiles(cfg)
-    shp.draw(woeid=opts.woeid, provider=opts.provider, height=opts.height, width=opts.width, children=opts.children, donuts=opts.donuts)
+    shp.draw(woeid=opts.woeid, provider=opts.provider, height=opts.height, width=opts.width, children=opts.children, donuts=opts.donuts, bbox=opts.bbox)
     shp.save(opts.out)
 
     sys.exit()
