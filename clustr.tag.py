@@ -16,12 +16,14 @@ class clustr :
         
     #
     
-    def points_for_tag (self, tag, outdir=None) :
+    def points_for_tag (self, tag, **kwargs) :
 
         dumpfile = "points_%s.txt" % tag
 
-        if outdir :
-            dumpfile = os.path.join(outdir, dumpfile)
+        print kwargs
+        
+        if kwargs['outdir'] :
+            dumpfile = os.path.join(kwargs['outdir'], dumpfile)
         
         current_page = 1
         num_pages = None
@@ -37,6 +39,10 @@ class clustr :
             # print "crunching page %s of %s" % (current_page, num_pages)
 
             args = {'tags':tag, 'page':current_page, 'per_page':500, 'has_geo':1, 'extras':'geo'}
+
+            if kwargs['woeid'] :
+                args['woe_id'] = kwargs['woeid']
+                
             res = self.api.execute_method(method='flickr.photos.search', args=args, sign=False)
 
             tree = ET.parse(res)
@@ -79,6 +85,7 @@ if __name__ == '__main__' :
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config", dest="config", help="path to an ini config file")
     parser.add_option("-t", "--tag", dest="tag", help="the tag to clustr-ize")
+    parser.add_option("-w", "--woeid", dest="woeid", help="scope the tag search to a specific WOE ID", default=None)    
     parser.add_option("-o", "--outdir", dest="outdir", help="the directory to write clustr input file ", default=None)            
 
     (opts, args) = parser.parse_args()
@@ -87,4 +94,4 @@ if __name__ == '__main__' :
     cfg.read(opts.config)
 
     cl = clustr(cfg)
-    cl.points_for_tag(opts.tag, opts.outdir)
+    cl.points_for_tag(opts.tag, woeid=opts.woeid, outdir=opts.outdir)
