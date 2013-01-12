@@ -102,6 +102,7 @@ if __name__ == '__main__':
     parser.add_option("-f", "--filtr", dest="filtr", help="The path to the filtr application", default=None)
     parser.add_option("-r", "--recipe", dest="recipe", help="The name of the filtr to apply", default='filtr')
     parser.add_option("-T", "--timer", dest="timer", help="...", default=0)
+    parser.add_option("-l", "--local", dest="local", help="", default=None)
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="enable chatty logging; default is false", default=False)
 
     (opts, args) = parser.parse_args()
@@ -118,8 +119,13 @@ if __name__ == '__main__':
 
     while True:
 
-        logging.info("taking a picture...")
-        path = wc.capture()
+        try:
+            logging.info("taking a picture...")
+            path = wc.capture()
+        except Exception, e:
+            log.error("unable to time a picture, because: %s" % e)
+            time.sleep(0.5)
+            continue
 
         if opts.filtr:
 
@@ -137,8 +143,18 @@ if __name__ == '__main__':
             subprocess.check_call([filtr, path, filtr_path])
             os.rename(filtr_path, path)
 
-        photoid = wc.upload(path, opts.permissions)
-        logging.info("photo uploaded with ID %s (%s)" % (photoid, opts.permissions))
+        if opts.local and os.path.isdir(opts.local):
+            fname = os.path.basename(path)
+            local_path = os.path.join(opts.local, fname)
+            logging.info("storing stuff locally to %s" % local_path)
+            os.rename(path, local_path)
+        else:
+
+            try:
+                photoid = wc.upload(path, opts.permissions)
+                logging.info("photo uploaded with ID %s (%s)" % (photoid, opts.permissions))
+            except Exception, e:
+                logging.error("failed to upload photo, because %s" % e)
 
         if not opts.timer:
             break
