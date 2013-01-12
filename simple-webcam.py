@@ -101,30 +101,50 @@ if __name__ == '__main__':
     parser.add_option("-p", "--permissions", dest="permissions", help="...", default=None)
     parser.add_option("-f", "--filtr", dest="filtr", help="The path to the filtr application", default=None)
     parser.add_option("-r", "--recipe", dest="recipe", help="The name of the filtr to apply", default='filtr')
+    parser.add_option("-T", "--timer", dest="timer", help="...", default=0)
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="enable chatty logging; default is false", default=False)
 
     (opts, args) = parser.parse_args()
+
+    if opts.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
 
     cfg = ConfigParser.ConfigParser()
     cfg.read(opts.config)
 
     wc = webcam(cfg)
 
-    path = wc.capture()
+    while True:
 
-    if opts.filtr:
+        logging.info("taking a picture...")
+        path = wc.capture()
 
-        tmp = tempfile.gettempdir()
-        now = int(time.time())
+        if opts.filtr:
 
-        fname = "%s-%s.jpg" % (now, opts.recipe)
-        filtr_path = os.path.join(tmp, fname)
+            tmp = tempfile.gettempdir()
+            now = int(time.time())
 
-        filtr = os.path.join(opts.filtr, 'recipes', opts.recipe)
-        filtr = os.path.realpath(filtr)
+            fname = "%s-%s.jpg" % (now, opts.recipe)
+            filtr_path = os.path.join(tmp, fname)
 
-        subprocess.check_call([filtr, path, filtr_path])
-        os.rename(filtr_path, path)
+            filtr = os.path.join(opts.filtr, 'recipes', opts.recipe)
+            filtr = os.path.realpath(filtr)
 
-    photoid = wc.upload(path, opts.permissions)
+            logging.info("filtr the photo with %s" % opts.recipe)
 
-    print photoid
+            subprocess.check_call([filtr, path, filtr_path])
+            os.rename(filtr_path, path)
+
+        photoid = wc.upload(path, opts.permissions)
+        logging.info("photo uploaded with ID %s (%s)" % (photoid, opts.permissions))
+
+        if not opts.timer:
+            break
+
+        logging.info("sleep for %s seconds" % opts.timer)
+        time.sleep(float(opts.timer))
+
+    logging.info("all done")
+    sys.exit()
