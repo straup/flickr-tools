@@ -143,6 +143,8 @@ if __name__ == '__main__':
             subprocess.check_call([filtr, path, filtr_path])
             os.rename(filtr_path, path)
 
+        # cat *.jpg | ffmpeg -f image2pipe -r 1/.5 -vcodec mjpeg -i - -vcodec libx264 out.mp4
+
         if opts.local and os.path.isdir(opts.local):
             fname = os.path.basename(path)
             local_path = os.path.join(opts.local, fname)
